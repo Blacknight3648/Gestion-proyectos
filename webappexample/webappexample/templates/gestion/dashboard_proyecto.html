@@ -1,0 +1,190 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Tablero 1: Operativo del Proyecto - {{ proyecto_actual.codigo }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0 text-dark">
+            <i class="fa-solid fa-gauge-high text-primary me-2"></i>Tablero 1: Comando Operativo del Proyecto
+        </h4>
+        <small class="text-muted">Control de avance físico, EVM, hitos, costos y los 8 KPIs de proyecto e hitos</small>
+    </div>
+    <div>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 py-2 px-3">
+            <i class="fa-solid fa-calendar me-1"></i> {{ proyecto_actual.fecha_inicio }} al {{ proyecto_actual.fecha_fin_plan }}
+        </span>
+    </div>
+</div>
+
+<!-- TARJETAS SUPERIORES DE RESUMEN OPERATIVO -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-bold">Avance General EDT</span>
+                <i class="fa-solid fa-chart-pie text-primary fs-4"></i>
+            </div>
+            <h2 class="fw-bold text-dark mt-2 mb-1">{{ proyecto_actual.porcentaje_avance_general }}%</h2>
+            <div class="progress" style="height: 6px;">
+                <div class="progress-bar bg-primary" style="width: {{ proyecto_actual.porcentaje_avance_general }}%;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-bold">Presupuesto Actual</span>
+                <i class="fa-solid fa-wallet text-success fs-4"></i>
+            </div>
+            <h2 class="fw-bold text-success mt-2 mb-1">${{ proyecto_actual.presupuesto_actual }}</h2>
+            <small class="text-muted">Inicial: ${{ proyecto_actual.presupuesto_inicial }}</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-bold">Costo Real Gastado</span>
+                <i class="fa-solid fa-receipt text-warning fs-4"></i>
+            </div>
+            <h2 class="fw-bold text-dark mt-2 mb-1">${{ proyecto_actual.costo_acumulado }}</h2>
+            <small class="text-muted">Horas facturadas y costos fijos</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-bold">Sobreasignaciones</span>
+                <i class="fa-solid fa-triangle-exclamation {% if alertas_sobreasignacion %}text-danger{% else %}text-muted{% endif %} fs-4"></i>
+            </div>
+            <h2 class="fw-bold {% if alertas_sobreasignacion %}text-danger{% else %}text-muted{% endif %} mt-2 mb-1">
+                {{ alertas_sobreasignacion|length }}
+            </h2>
+            <small class="text-muted">{% if alertas_sobreasignacion %}¡Requiere balanceo urgente!{% else %}Carga óptima{% endif %}</small>
+        </div>
+    </div>
+</div>
+
+<!-- LOS 8 KPIS DE PROYECTO E HITOS (INDICADOR E) -->
+<div class="card card-custom p-3 bg-white mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-dark mb-0">
+            <i class="fa-solid fa-traffic-light text-primary me-2"></i>Motor de KPIs de Proyecto (8 Indicadores Paramétricos)
+        </h5>
+        <span class="badge bg-info text-dark">Fórmulas EVM & Avance Físico</span>
+    </div>
+    <div class="row g-3">
+        {% for k in kpis_proyecto %}
+        <div class="col-md-3">
+            <div class="border rounded-3 p-3 h-100 position-relative {% if k.semaforo == 'VERDE' %}border-success-subtle bg-success-subtle bg-opacity-10{% elif k.semaforo == 'AMARILLO' %}border-warning-subtle bg-warning-subtle bg-opacity-10{% else %}border-danger-subtle bg-danger-subtle bg-opacity-10{% endif %}">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="badge bg-secondary small">{{ k.codigo }}</span>
+                    {% if k.semaforo == 'VERDE' %}
+                        <span class="badge bg-success"><i class="fa-solid fa-circle"></i> Meta</span>
+                    {% elif k.semaforo == 'AMARILLO' %}
+                        <span class="badge bg-warning text-dark"><i class="fa-solid fa-circle"></i> Alerta</span>
+                    {% else %}
+                        <span class="badge bg-danger"><i class="fa-solid fa-circle"></i> Crítico</span>
+                    {% endif %}
+                </div>
+                <div class="fw-bold text-dark text-truncate" title="{{ k.nombre }}">{{ k.nombre }}</div>
+                <div class="fs-3 fw-bold mt-2 {% if k.semaforo == 'VERDE' %}text-success{% elif k.semaforo == 'AMARILLO' %}text-warning{% else %}text-danger{% endif %}">
+                    {{ k.valor }}{{ k.unidad }}
+                </div>
+                <div class="small text-muted mt-1">
+                    Meta: <strong>{{ k.meta }}{{ k.unidad }}</strong> | <span title="{{ k.formula }}">{{ k.formula }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- SEGUIMIENTO DE LOS 6 HITOS Y ALERTAS -->
+<div class="row g-4">
+    <!-- HITOS DEL PROYECTO -->
+    <div class="col-lg-7">
+        <div class="card card-custom p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-flag-checkered text-primary me-2"></i>Seguimiento de Hitos Clave</h5>
+                <span class="badge bg-secondary">{{ hitos|length }} Hitos Registrados</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th>Hito</th>
+                            <th>Fecha Programada</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in hitos %}
+                        <tr>
+                            <td>
+                                <strong>{{ h.nombre }}</strong>
+                                {% if h.descripcion %}<div class="small text-muted">{{ h.descripcion }}</div>{% endif %}
+                            </td>
+                            <td><small>{{ h.fecha_programada }}</small></td>
+                            <td>
+                                {% if h.cumplido %}
+                                    <span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Cumplido</span>
+                                {% else %}
+                                    <span class="badge bg-secondary"><i class="fa-regular fa-clock me-1"></i>Pendiente</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-3">No hay hitos registrados en este proyecto.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ALERTAS OPERATIVAS -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-3 bg-white h-100">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-bell text-warning me-2"></i>Alertas & Desvíos Críticos</h5>
+            {% if alertas_sobreasignacion %}
+                <div class="alert alert-danger py-2 mb-3">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                    <strong>{{ alertas_sobreasignacion|length }} conflicto(s) de sobreasignación:</strong> Hay profesionales que exceden su jornada máxima diaria de 8h.
+                </div>
+            {% endif %}
+
+            {% if total_atrasadas > 0 %}
+                <div class="alert alert-warning py-2 mb-3">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i>
+                    <strong>{{ total_atrasadas }} tarea(s) atrasada(s):</strong> Fecha de fin vencida con avance menor al 100%.
+                </div>
+            {% else %}
+                <div class="alert alert-success py-2 mb-3">
+                    <i class="fa-solid fa-circle-check me-1"></i>
+                    Todas las tareas activas se encuentran dentro del cronograma previsto.
+                </div>
+            {% endif %}
+
+            <div class="border rounded p-3 bg-light">
+                <div class="small text-muted fw-bold mb-1">Resumen de Ejecución:</div>
+                <div class="d-flex justify-content-between small py-1 border-bottom">
+                    <span>Total Tareas:</span>
+                    <strong>{{ total_tareas }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small py-1 border-bottom">
+                    <span>Tareas Atrasadas:</span>
+                    <strong class="{% if total_atrasadas > 0 %}text-danger{% else %}text-success{% endif %}">{{ total_atrasadas }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small py-1">
+                    <span>Hitos Cumplidos:</span>
+                    <strong>{{ hitos|length }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

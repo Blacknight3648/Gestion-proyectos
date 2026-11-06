@@ -1,0 +1,196 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Carta Gantt - {{ proyecto_actual.codigo }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0 text-dark">
+            <i class="fa-solid fa-chart-gantt text-primary me-2"></i>Carta Gantt Dinámica & Motor de Precedencias
+        </h4>
+        <small class="text-muted">Soporte estricto para los 4 enlaces (FS, SS, FF, SF), desfases, hitos y recálculo en cascada</small>
+    </div>
+    <!-- Controles de Vista de Gantt -->
+    <div class="btn-group btn-group-sm" role="group">
+        <button type="button" class="btn btn-outline-secondary" onclick="gantt.change_view_mode('Day')">Día</button>
+        <button type="button" class="btn btn-outline-secondary" onclick="gantt.change_view_mode('Week')">Semana</button>
+        <button type="button" class="btn btn-outline-secondary active" onclick="gantt.change_view_mode('Month')">Mes</button>
+    </div>
+</div>
+
+<!-- CONTENEDOR DEL GANTT INTERACTIVO (Frappe Gantt) -->
+<div class="card card-custom p-3 bg-white mb-4 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="fw-bold text-dark"><i class="fa-solid fa-eye text-info me-1"></i>Visualización Gráfica Interactiva</span>
+        <div class="small d-flex gap-3">
+            <span><span class="badge bg-primary">&nbsp;</span> Tarea Normal</span>
+            <span><span class="badge bg-danger">&nbsp;</span> Atrasada</span>
+            <span><span class="badge" style="background-color: #8b5cf6;">&nbsp;</span> Hito Clave</span>
+        </div>
+    </div>
+    <div id="gantt-chart" style="overflow-x: auto; min-height: 380px;"></div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- DEMOSTRACIÓN EN VIVO: MODIFICAR DURACIÓN Y VER RECÁLCULO EN CASCADA (Indicador D & H) -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-3 bg-white border-primary shadow-sm h-100">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="fa-solid fa-bolt text-warning fs-5"></i>
+                <h5 class="fw-bold mb-0 text-primary">Prueba de Recálculo en Cascada (Demo)</h5>
+            </div>
+            <p class="small text-muted mb-3">
+                Selecciona una tarea origen con dependientes. Al cambiar su duración, el motor en Python ajustará automáticamente las fechas de inicio y fin de toda la cadena de precedencias en cascada.
+            </p>
+            <form action="" method="POST" id="formCascade">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Seleccionar Tarea a Modificar</label>
+                    <select class="form-select form-select-sm" id="selectTask" onchange="actualizarActionForm(this)">
+                        {% for sub in subactividades %}
+                            <option value="{% url 'actualizar_duracion_tarea' sub.id %}" data-dur="{{ sub.duracion_dias }}">
+                                {{ sub.codigo }} - {{ sub.nombre }} (Actual: {{ sub.duracion_dias }} días)
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Nueva Duración (Días)</label>
+                    <input type="number" name="duracion_dias" id="inputDuracion" class="form-control form-control-sm" min="1" max="100" value="8" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
+                    <i class="fa-solid fa-calculator me-1"></i> Recalcular Cascada en Gantt
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MATRIZ DE PRECEDENCIAS REGISTRADAS (FS, SS, FF, SF) -->
+    <div class="col-lg-7">
+        <div class="card card-custom p-3 bg-white h-100">
+            <h5 class="fw-bold text-dark mb-2"><i class="fa-solid fa-network-wired text-primary me-2"></i>Matriz de Dependencias (4 Tipos Soportados)</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th>Origen (Predecesora)</th>
+                            <th>Tipo Enlace</th>
+                            <th>Desfase (Lag)</th>
+                            <th>Destino (Sucesora)</th>
+                            <th>Relación Temporal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prec in precedencias %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ prec.tarea_origen.codigo }}</span> {{ prec.tarea_origen.nombre }}</td>
+                            <td>
+                                <span class="badge {% if prec.tipo == 'FS' %}bg-primary{% elif prec.tipo == 'SS' %}bg-success{% elif prec.tipo == 'FF' %}bg-info{% else %}bg-warning text-dark{% endif %}">
+                                    {{ prec.get_tipo_display }}
+                                </span>
+                            </td>
+                            <td><strong>{{ prec.lag_dias }} días</strong></td>
+                            <td><span class="badge bg-secondary">{{ prec.tarea_destino.codigo }}</span> {{ prec.tarea_destino.nombre }}</td>
+                            <td><small class="text-muted">{{ prec.tarea_origen.fecha_fin_plan }} &rarr; {{ prec.tarea_destino.fecha_inicio_plan }}</small></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-3">No hay precedencias configuradas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LÍNEA BASE VS AVANCE REAL -->
+<div class="card card-custom p-3 bg-white">
+    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-table-list text-primary me-2"></i>Comparativa: Línea Base vs Avance Real</h5>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th>Código</th>
+                    <th>Tarea / Subactividad</th>
+                    <th>Duración</th>
+                    <th>Línea Base (Planificada)</th>
+                    <th>Avance Físico</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in subactividades %}
+                <tr>
+                    <td><strong>{{ sub.codigo }}</strong></td>
+                    <td>
+                        {{ sub.nombre }}
+                        {% if sub.es_hito %}
+                            <span class="badge bg-warning-subtle text-dark"><i class="fa-solid fa-flag text-warning"></i> Hito</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ sub.duracion_dias }} d</td>
+                    <td><small>{{ sub.fecha_inicio_plan }} al {{ sub.fecha_fin_plan }}</small></td>
+                    <td style="width: 150px;">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="progress flex-grow-1" style="height: 8px;">
+                                <div class="progress-bar {% if sub.porcentaje_avance == 100 %}bg-success{% else %}bg-primary{% endif %}" style="width: {{ sub.porcentaje_avance }}%;"></div>
+                            </div>
+                            <span class="small fw-bold">{{ sub.porcentaje_avance }}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        {% if sub.esta_atrasada %}
+                            <span class="badge bg-danger">Atrasada</span>
+                        {% elif sub.porcentaje_avance == 100 %}
+                            <span class="badge bg-success">Completada</span>
+                        {% else %}
+                            <span class="badge bg-primary-subtle text-primary">{{ sub.estado }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const tasks = {{ tasks_json|safe }};
+    let gantt = null;
+
+    if (tasks && tasks.length > 0) {
+        gantt = new Gantt("#gantt-chart", tasks, {
+            view_mode: 'Month',
+            language: 'es',
+            bar_height: 24,
+            bar_corner_radius: 4,
+            arrow_curve: 5,
+            padding: 18,
+            date_format: 'YYYY-MM-DD'
+        });
+    } else {
+        document.getElementById('gantt-chart').innerHTML = '<div class="text-center py-5 text-muted">No hay tareas con fechas para proyectar en el Gantt.</div>';
+    }
+
+    function actualizarActionForm(select) {
+        const form = document.getElementById('formCascade');
+        form.action = select.value;
+        const opt = select.options[select.selectedIndex];
+        const dur = opt.getAttribute('data-dur');
+        if (dur) {
+            document.getElementById('inputDuracion').value = parseInt(dur) + 3; // Sugerir incremento para demo
+        }
+    }
+
+    // Inicializar action del formulario
+    const sel = document.getElementById('selectTask');
+    if (sel) {
+        actualizarActionForm(sel);
+    }
+</script>
+{% endblock %}
+

@@ -1,0 +1,350 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}EDT / WBS - {{ proyecto_actual.codigo }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0 text-dark">
+            <i class="fa-solid fa-sitemap text-primary me-2"></i>Estructura Desglosada del Trabajo (EDT / WBS)
+        </h4>
+        <small class="text-muted">Proyecto: <strong>{{ proyecto_actual.codigo }}</strong> - {{ proyecto_actual.nombre }}</small>
+    </div>
+    <div class="d-flex gap-2">
+        {% if wbs_data.regla_100_global %}
+            <span class="badge badge-100-success fs-6 py-2 px-3 d-flex align-items-center gap-1">
+                <i class="fa-solid fa-circle-check"></i> Regla 100% Cumplida (Suma: {{ wbs_data.suma_etapas }}%)
+            </span>
+        {% else %}
+            <span class="badge badge-100-warning fs-6 py-2 px-3 d-flex align-items-center gap-1">
+                <i class="fa-solid fa-triangle-exclamation"></i> Alerta WBS: Suma de Etapas = {{ wbs_data.suma_etapas }}% (Debe ser 100%)
+            </span>
+        {% endif %}
+
+        {% if profile.es_director %}
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAgregarEtapa">
+            <i class="fa-solid fa-plus me-1"></i> + Nueva Etapa
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- RESUMEN DE PROGRESO Y COSTOS -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white">
+            <span class="text-muted small fw-bold">Avance General Ponderado</span>
+            <div class="d-flex align-items-center gap-3 mt-2">
+                <h3 class="fw-bold text-primary mb-0">{{ wbs_data.avance_general }}%</h3>
+                <div class="progress flex-grow-1" style="height: 10px;">
+                    <div class="progress-bar bg-primary" style="width: {{ wbs_data.avance_general }}%;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white">
+            <span class="text-muted small fw-bold">Presupuesto Inicial vs Actual</span>
+            <h4 class="fw-bold text-dark mb-0 mt-2">${{ proyecto_actual.presupuesto_actual }}</h4>
+            <small class="text-muted">Inicial: ${{ proyecto_actual.presupuesto_inicial }}</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white">
+            <span class="text-muted small fw-bold">Costo Acumulado Gastado</span>
+            <h4 class="fw-bold text-success mb-0 mt-2">${{ proyecto_actual.costo_acumulado }}</h4>
+            <small class="text-muted">Registro contable de horas y compras</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white">
+            <span class="text-muted small fw-bold">Duración Planificada</span>
+            <h4 class="fw-bold text-dark mb-0 mt-2">{{ proyecto_actual.duracion_dias_plan }} días</h4>
+            <small class="text-muted">{{ proyecto_actual.fecha_inicio }} al {{ proyecto_actual.fecha_fin_plan }}</small>
+        </div>
+    </div>
+</div>
+
+<!-- ÁRBOL JERÁRQUICO WBS -->
+<div class="card card-custom bg-white p-3">
+    {% for etapa in wbs_data.etapas %}
+        <div class="border rounded-3 mb-3 p-3 bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-dark fs-6">{{ etapa.codigo }}</span>
+                    <h5 class="fw-bold mb-0 text-dark">{{ etapa.nombre }}</h5>
+                    <span class="badge bg-secondary ms-2">Peso: {{ etapa.peso }}%</span>
+                    {% if etapa.regla_100_valida %}
+                        <span class="badge bg-success small"><i class="fa-solid fa-check"></i> 100% Hijas</span>
+                    {% else %}
+                        <span class="badge bg-danger small"><i class="fa-solid fa-xmark"></i> Suma hijas: {{ etapa.suma_hijos }}%</span>
+                    {% endif %}
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="text-muted small">Avance: <strong>{{ etapa.avance }}%</strong></span>
+                    <span class="text-muted small">Costo: <strong>${{ etapa.costo }}</strong></span>
+                    {% if profile.es_director %}
+                    <button class="btn btn-outline-primary btn-sm py-0" data-bs-toggle="modal" data-bs-target="#modalActividad_{{ etapa.id }}">
+                        <i class="fa-solid fa-plus me-1"></i> + Actividad
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- ACTIVIDADES -->
+            {% for act in etapa.actividades %}
+                <div class="ms-4 mt-3 p-2 bg-white rounded border">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary">{{ act.codigo }}</span>
+                            <span class="fw-bold text-dark">{{ act.nombre }}</span>
+                            <span class="badge bg-light text-dark border">Peso: {{ act.peso }}%</span>
+                            {% if act.fecha_inicio and act.fecha_fin %}
+                                <span class="small text-muted"><i class="fa-regular fa-calendar me-1"></i>{{ act.fecha_inicio }} al {{ act.fecha_fin }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="small">Avance: <strong>{{ act.avance }}%</strong></span>
+                            {% if profile.es_director %}
+                            <button class="btn btn-outline-success btn-sm py-0" data-bs-toggle="modal" data-bs-target="#modalSubactividad_{{ act.id }}">
+                                <i class="fa-solid fa-plus me-1"></i> + Subactividad
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- SUBACTIVIDADES (Nivel 3) -->
+                    {% if act.subactividades %}
+                    <div class="table-responsive mt-2 ms-3">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Subactividad</th>
+                                    <th>Peso %</th>
+                                    <th>Duración</th>
+                                    <th>Fechas (Inicio - Fin)</th>
+                                    <th>Costo</th>
+                                    <th>Avance</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sub in act.subactividades %}
+                                <tr>
+                                    <td><span class="badge bg-info-subtle text-info-emphasis border">{{ sub.codigo }}</span></td>
+                                    <td>
+                                        {{ sub.nombre }}
+                                        {% if sub.es_hito %}
+                                            <span class="badge bg-warning-subtle text-dark ms-1"><i class="fa-solid fa-flag text-warning"></i> Hito</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ sub.peso }}%</td>
+                                    <td>{{ sub.duracion }} días</td>
+                                    <td><small>{{ sub.fecha_inicio_plan }} al {{ sub.fecha_fin_plan }}</small></td>
+                                    <td>${{ sub.costo }}</td>
+                                    <td style="width: 130px;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="progress flex-grow-1" style="height: 6px;">
+                                                <div class="progress-bar {% if sub.avance == 100 %}bg-success{% else %}bg-primary{% endif %}" style="width: {{ sub.avance }}%;"></div>
+                                            </div>
+                                            <span class="small fw-bold">{{ sub.avance }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if sub.atrasada %}
+                                            <span class="badge bg-danger"><i class="fa-solid fa-clock-rotate-left"></i> Atrasada</span>
+                                        {% elif sub.avance == 100 %}
+                                            <span class="badge bg-success">Completada</span>
+                                        {% else %}
+                                            <span class="badge bg-primary-subtle text-primary">{{ sub.estado }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- MODAL AGREGAR SUBACTIVIDAD PARA ESTA ACTIVIDAD (Ajuste Mockup #4) -->
+                <div class="modal fade" id="modalSubactividad_{{ act.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <form action="{% url 'agregar_subactividad' act.id %}" method="POST">
+                                {% csrf_token %}
+                                <div class="modal-header bg-dark text-white">
+                                    <h5 class="modal-title"><i class="fa-solid fa-list-check me-2 text-primary"></i>Nueva Subactividad para {{ act.codigo }}</h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label fw-bold">Código Jerárquico</label>
+                                            <input type="text" name="codigo" class="form-control" placeholder="Ej. {{ act.codigo }}.1" required>
+                                        </div>
+                                        <div class="col-md-8 mb-3">
+                                            <label class="form-label fw-bold">Nombre de la Subactividad</label>
+                                            <input type="text" name="nombre" class="form-control" required>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label fw-bold">Peso % (Regla 100%)</label>
+                                            <input type="number" step="0.01" name="peso_porcentual" class="form-control" value="50.00" required>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label fw-bold">Duración (Días)</label>
+                                            <input type="number" name="duracion_dias" class="form-control" value="5" required>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label fw-bold">Fecha Inicio</label>
+                                            <input type="date" name="fecha_inicio_plan" class="form-control" required>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label fw-bold">Fecha Fin</label>
+                                            <input type="date" name="fecha_fin_plan" class="form-control" required>
+                                        </div>
+                                    </div>
+
+                                    <!-- Ajuste Mockup #4: Campos de Predecesoras, Desfases y Recursos -->
+                                    <h6 class="fw-bold mt-3 border-top pt-3 text-primary"><i class="fa-solid fa-link me-1"></i>Predecesora & Tipo de Enlace</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label small">Tarea Predecesora (Opcional)</label>
+                                            <select name="predecesora_id" class="form-select">
+                                                <option value="">-- Sin dependencia --</option>
+                                                {% for s in todas_subactividades %}
+                                                    <option value="{{ s.id }}">{{ s.codigo }} - {{ s.nombre }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label small">Tipo de Enlace</label>
+                                            <select name="tipo_enlace" class="form-select">
+                                                <option value="FS">Fin a Inicio (FS)</option>
+                                                <option value="SS">Inicio a Inicio (SS)</option>
+                                                <option value="FF">Fin a Fin (FF)</option>
+                                                <option value="SF">Inicio a Fin (SF)</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label small">Desfase (Lag en días)</label>
+                                            <input type="number" name="lag_dias" class="form-control" value="0">
+                                        </div>
+                                    </div>
+
+                                    <h6 class="fw-bold mt-2 border-top pt-3 text-primary"><i class="fa-solid fa-user-plus me-1"></i>Asignación de Recursos & Costo</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label small">Recurso Asignado</label>
+                                            <select name="recurso_id" class="form-select">
+                                                <option value="">-- Sin recurso asignado --</option>
+                                                {% for r in recursos %}
+                                                    <option value="{{ r.id }}">{{ r.nombre }} (${{ r.tarifa_por_hora }}/h)</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label small">Horas Asignadas</label>
+                                            <input type="number" step="0.5" name="horas_asignadas" class="form-control" value="40.0">
+                                        </div>
+                                        <div class="col-md-3 mb-3">
+                                            <label class="form-label small">Costo Fijo ($)</label>
+                                            <input type="number" step="0.01" name="costo_fijo" class="form-control" value="0.00">
+                                        </div>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input" type="checkbox" name="es_hito" id="es_hito_{{ act.id }}">
+                                        <label class="form-check-label fw-bold" for="es_hito_{{ act.id }}">
+                                            Marcar como Hito Clave del Proyecto
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-success"><i class="fa-solid fa-check me-1"></i>Crear Subactividad</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+            {% endfor %}
+        </div>
+
+        <!-- MODAL AGREGAR ACTIVIDAD -->
+        <div class="modal fade" id="modalActividad_{{ etapa.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="{% url 'agregar_actividad' etapa.id %}" method="POST">
+                        {% csrf_token %}
+                        <div class="modal-header bg-dark text-white">
+                            <h5 class="modal-title">Agregar Actividad a {{ etapa.codigo }}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Código</label>
+                                <input type="text" name="codigo" class="form-control" placeholder="Ej. {{ etapa.codigo|slice:':1' }}.1" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Nombre</label>
+                                <input type="text" name="nombre" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Peso % en la Etapa (Regla 100%)</label>
+                                <input type="number" step="0.01" name="peso_porcentual" class="form-control" value="33.33" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Agregar Actividad</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="text-center py-5 text-muted">
+            <i class="fa-solid fa-diagram-project fs-1 mb-3"></i>
+            <p>Este proyecto aún no tiene etapas definidas en su EDT/WBS.</p>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- MODAL AGREGAR ETAPA -->
+<div class="modal fade" id="modalAgregarEtapa" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{% url 'agregar_etapa' proyecto_actual.id %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Agregar Nueva Etapa al WBS</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Código de Etapa</label>
+                        <input type="text" name="codigo" class="form-control" placeholder="Ej. 1.0, 2.0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre de la Etapa</label>
+                        <input type="text" name="nombre" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Peso % en el Proyecto (Regla 100%)</label>
+                        <input type="number" step="0.01" name="peso_porcentual" class="form-control" value="25.00" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Etapa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

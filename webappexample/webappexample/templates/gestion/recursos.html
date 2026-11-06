@@ -1,0 +1,180 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Recursos y Costos - {{ proyecto_actual.codigo }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0 text-dark">
+            <i class="fa-solid fa-users-gear text-primary me-2"></i>Gestión de Recursos, Tarifas y Sobreasignaciones
+        </h4>
+        <small class="text-muted">Control temporal, jornada máxima disponible y cálculo automático de sobrecarga en Python</small>
+    </div>
+</div>
+
+<!-- SECCIÓN CRÍTICA: ALERTAS DE SOBREASIGNACIÓN AUTOMÁTICAS (Indicador C) -->
+{% if alertas_sobreasignacion %}
+<div class="alert alert-danger border-danger shadow-sm mb-4">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="fa-solid fa-triangle-exclamation fs-4 text-danger"></i>
+        <h5 class="fw-bold mb-0 text-danger">
+            ¡Detección Automática de Sobreasignación de Profesionales! ({{ alertas_sobreasignacion|length }} alerta{{ alertas_sobreasignacion|length|pluralize }})
+        </h5>
+    </div>
+    <p class="small text-dark mb-3">
+        El motor en Python ha detectado que uno o más profesionales tienen asignaciones que superan su jornada máxima disponible (8.0 hrs/día). Esto compromete la viabilidad del cronograma.
+    </p>
+    <div class="table-responsive bg-white rounded border">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-danger text-dark small">
+                <tr>
+                    <th>Profesional</th>
+                    <th>Cargo / Especialidad</th>
+                    <th>Fecha Crítica</th>
+                    <th>Horas Asignadas</th>
+                    <th>Jornada Máxima</th>
+                    <th>Sobrecarga / Exceso</th>
+                    <th>Tareas en Conflicto</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alerta in alertas_sobreasignacion %}
+                <tr>
+                    <td class="fw-bold text-danger">{{ alerta.recurso_nombre }}</td>
+                    <td><small>{{ alerta.cargo }}</small></td>
+                    <td><span class="badge bg-secondary">{{ alerta.fecha }}</span></td>
+                    <td class="fw-bold text-danger fs-6">{{ alerta.horas_asignadas }} hrs</td>
+                    <td>{{ alerta.jornada_maxima }} hrs</td>
+                    <td><span class="badge bg-danger">+{{ alerta.exceso_horas }} hrs extras</span></td>
+                    <td>
+                        <ul class="list-unstyled mb-0 small">
+                            {% for t in alerta.tareas_involucradas %}
+                                <li><i class="fa-solid fa-angle-right text-muted me-1"></i><strong>{{ t.subactividad }}</strong>: {{ t.nombre_tarea }} ({{ t.horas }}h)</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success border-success-subtle d-flex align-items-center gap-2 mb-4">
+    <i class="fa-solid fa-circle-check fs-5 text-success"></i>
+    <div><strong>Asignación Balanceada:</strong> Ningún profesional presenta sobreasignación de horas en este proyecto.</div>
+</div>
+{% endif %}
+
+<!-- TABLA DE PROFESIONALES Y TARIFAS -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
+        <div class="card card-custom p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-id-card-clip text-primary me-2"></i>Catálogo de Recursos & Tarifas</h5>
+                <span class="badge bg-primary">{{ todos_recursos|length }} Recursos Registrados</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th>Recurso</th>
+                            <th>Tipo</th>
+                            <th>Tarifa / Hora</th>
+                            <th>Jornada Diaria</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in todos_recursos %}
+                        <tr>
+                            <td>
+                                <strong>{{ r.nombre }}</strong>
+                                {% if r.cargo_o_detalle %}
+                                    <div class="small text-muted">{{ r.cargo_o_detalle }}</div>
+                                {% endif %}
+                            </td>
+                            <td><span class="badge bg-light text-dark border">{{ r.tipo.nombre }}</span></td>
+                            <td class="fw-bold text-primary">${{ r.tarifa_por_hora }}</td>
+                            <td>{{ r.jornada_diaria_horas }} hrs/día</td>
+                            <td>
+                                {% if r.disponible %}
+                                    <span class="badge bg-success-subtle text-success">Disponible</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger">No Disponible</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESUMEN DE COSTOS POR RECURSO -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-3 bg-white h-100">
+            <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-coins text-warning me-2"></i>Desglose de Costo en este Proyecto</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead class="table-light small">
+                        <tr>
+                            <th>Recurso</th>
+                            <th>Horas Asignadas</th>
+                            <th>Costo Calculado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in resumen_recursos %}
+                        <tr>
+                            <td><strong>{{ item.nombre }}</strong></td>
+                            <td>{{ item.horas }} hrs</td>
+                            <td class="fw-bold text-success">${{ item.costo }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">No hay asignaciones de recursos en este proyecto aún.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DETALLE DE ASIGNACIONES POR TAREA -->
+<div class="card card-custom p-3 bg-white">
+    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-list-check text-primary me-2"></i>Asignaciones Directas a Subactividades</h5>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th>Subactividad</th>
+                    <th>Recurso Asignado</th>
+                    <th>Horas Totales</th>
+                    <th>Periodo de Ejecución</th>
+                    <th>Costo Proyectado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asig in asignaciones %}
+                <tr>
+                    <td><strong>{{ asig.subactividad.codigo }}</strong> - {{ asig.subactividad.nombre }}</td>
+                    <td>{{ asig.recurso.nombre }} <small class="text-muted">(${{ asig.recurso.tarifa_por_hora }}/h)</small></td>
+                    <td><span class="badge bg-primary">{{ asig.horas_asignadas }} hrs</span></td>
+                    <td><small>{{ asig.fecha_inicio }} al {{ asig.fecha_fin }}</small></td>
+                    <td class="fw-bold text-success">${{ asig.costo_asignacion }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-3">Sin asignaciones registradas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+

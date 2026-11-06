@@ -1,0 +1,219 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Gestión del Cambio - {{ proyecto_actual.codigo }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0 text-dark">
+            <i class="fa-solid fa-arrows-split-up-and-left text-primary me-2"></i>Módulo de Gestión del Cambio (Trazabilidad de 10 Etapas)
+        </h4>
+        <small class="text-muted">Registro formal de RFC, evaluación técnica, dictamen de Comité CCB y propagación automática al cronograma y costos</small>
+    </div>
+    <div>
+        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNuevaSolicitud">
+            <i class="fa-solid fa-plus me-1"></i> + Nueva Solicitud de Cambio (RFC)
+        </button>
+    </div>
+</div>
+
+<!-- RESUMEN DE PROCESO DE 10 ETAPAS -->
+<div class="card card-custom p-3 bg-white mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="fw-bold text-dark small"><i class="fa-solid fa-list-ol text-primary me-1"></i>Flujo Metodológico de 10 Etapas Exigido</span>
+        <span class="badge bg-success-subtle text-success border border-success-subtle">Propagación Automática en Etapa 8</span>
+    </div>
+    <div class="d-flex overflow-auto py-2 gap-2 text-center" style="white-space: nowrap;">
+        <span class="badge bg-light text-dark border p-2">1. Identificación</span>
+        <i class="fa-solid fa-arrow-right text-muted my-auto"></i>
+        <span class="badge bg-light text-dark border p-2">2. Clasificación</span>
+        <i class="fa-solid fa-arrow-right text-muted my-auto"></i>
+        <span class="badge bg-light text-dark border p-2">3. Impacto Inicial</span>
+        <i class="fa-solid fa-arrow-right text-muted my-auto"></i>
+        <span class="badge bg-light text-dark border p-2">4. Eval. Técnica</span>
+        <i class="fa-solid fa-arrow-right text-muted my-auto"></i>
+        <span class="badge bg-light text-dark border p-2">5. Comité CCB</span>
+        <i class="fa-solid fa-arrow-right text-muted my-auto"></i>
+        <span class="badge bg-light text-dark border p-2">6. Decisión</span>
+        <i class="fa-solid fa-arrow-right text-muted my-auto"></i>
+        <span class="badge bg-light text-dark border p-2">7. Planificación</span>
+        <i class="fa-solid fa-arrow-right text-muted my-auto"></i>
+        <span class="badge bg-primary text-white p-2 fw-bold">8. Propagación Gantt</span>
+        <i class="fa-solid fa-arrow-right text-muted my-auto"></i>
+        <span class="badge bg-light text-dark border p-2">9. Verificación</span>
+        <i class="fa-solid fa-arrow-right text-muted my-auto"></i>
+        <span class="badge bg-light text-dark border p-2">10. Adopción</span>
+    </div>
+</div>
+
+<!-- TABLA DE SOLICITUDES DE CAMBIO REGISTRADAS -->
+<div class="card card-custom p-3 bg-white">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small">
+                <tr>
+                    <th>Código RFC</th>
+                    <th>Título / Alcance</th>
+                    <th>Prioridad</th>
+                    <th>Impacto Proyectado</th>
+                    <th>Etapa Actual (1-10)</th>
+                    <th>Propagación</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sol in solicitudes %}
+                <tr>
+                    <td><span class="badge bg-dark fs-6">{{ sol.codigo }}</span></td>
+                    <td>
+                        <strong>{{ sol.titulo }}</strong>
+                        <div class="small text-muted text-truncate" style="max-width: 320px;" title="{{ sol.justificacion }}">
+                            Justificación: {{ sol.justificacion }}
+                        </div>
+                        <div class="small text-muted">
+                            Solicitante: {{ sol.solicitante }} | Responsable: {{ sol.responsable }}
+                        </div>
+                    </td>
+                    <td>
+                        {% if sol.prioridad == 'ALTA' %}
+                            <span class="badge bg-danger">Alta</span>
+                        {% elif sol.prioridad == 'MEDIA' %}
+                            <span class="badge bg-warning text-dark">Media</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Baja</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div><i class="fa-regular fa-clock me-1 text-primary"></i><strong>+{{ sol.impacto_plazo_dias }} días</strong></div>
+                        <div><i class="fa-solid fa-dollar-sign me-1 text-success"></i><strong>+${{ sol.impacto_costo }}</strong></div>
+                        {% if sol.subactividad_afectada %}
+                            <small class="badge bg-light text-dark border">Afecta: {{ sol.subactividad_afectada.codigo }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-info-subtle text-info-emphasis border fs-7">
+                            Etapa {{ sol.etapa_actual }}: {{ sol.get_etapa_actual_display|slice:"3:" }}
+                        </span>
+                        <div class="small text-muted mt-1">{{ sol.get_estado_display }}</div>
+                    </td>
+                    <td>
+                        {% if sol.propagado %}
+                            <span class="badge bg-success"><i class="fa-solid fa-check-double me-1"></i>Propagado a Gantt</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark"><i class="fa-solid fa-clock me-1"></i>Pendiente</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex flex-column gap-1">
+                            {% if profile.es_director %}
+                                <!-- Avanzar Etapa -->
+                                <form action="{% url 'avanzar_etapa_cambio' sol.id %}" method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="nueva_etapa" value="{{ sol.etapa_actual|add:1 }}">
+                                    <button type="submit" class="btn btn-outline-primary btn-sm py-0 w-100" {% if sol.etapa_actual >= 10 %}disabled{% endif %}>
+                                        <i class="fa-solid fa-angles-right me-1"></i> Avanzar Etapa
+                                    </button>
+                                </form>
+
+                                <!-- Disparar Propagación en Vivo para la Demo -->
+                                {% if not sol.propagado %}
+                                <form action="{% url 'propagar_cambio_directo' sol.id %}" method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-warning btn-sm py-0 fw-bold text-dark w-100" title="Demuestra la propagación automática en vivo">
+                                        <i class="fa-solid fa-bolt me-1"></i> ⚡ Propagar
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% else %}
+                                <span class="small text-muted">Solo lectura</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                        No hay solicitudes de cambio registradas en este proyecto.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL REGISTRAR NUEVA SOLICITUD DE CAMBIO (RFC) -->
+<div class="modal fade" id="modalNuevaSolicitud" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{% url 'registrar_solicitud_cambio' proyecto_actual.id %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="fa-solid fa-file-signature me-2 text-primary"></i>Ingresar Solicitud de Cambio (RFC)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Código RFC</label>
+                            <input type="text" name="codigo" class="form-control" placeholder="Ej. RFC-006" required>
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label fw-bold">Título del Cambio</label>
+                            <input type="text" name="titulo" class="form-control" placeholder="Resumen del requerimiento" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Descripción del Cambio</label>
+                        <textarea name="descripcion" class="form-control" rows="2" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Justificación de Negocio / Técnica</label>
+                        <textarea name="justificacion" class="form-control" rows="2" required></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Solicitante</label>
+                            <input type="text" name="solicitante" class="form-control" value="{{ profile.nombre }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Prioridad</label>
+                            <select name="prioridad" class="form-select">
+                                <option value="MEDIA">Media</option>
+                                <option value="ALTA">Alta</option>
+                                <option value="BAJA">Baja</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mt-3 border-top pt-3 text-primary"><i class="fa-solid fa-calculator me-1"></i>Estimación de Impacto para Propagación</h6>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label small fw-bold">Impacto en Plazo (Días Extra)</label>
+                            <input type="number" name="impacto_plazo_dias" class="form-control" value="3" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label small fw-bold">Impacto en Presupuesto ($)</label>
+                            <input type="number" step="0.01" name="impacto_costo" class="form-control" value="1200.00" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label small fw-bold">Subactividad Afectada</label>
+                            <select name="subactividad_afectada_id" class="form-select">
+                                <option value="">-- Sin tarea directa --</option>
+                                {% for s in subactividades %}
+                                    <option value="{{ s.id }}">{{ s.codigo }} - {{ s.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i>Registrar Solicitud en Etapa 1</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

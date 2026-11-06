@@ -1,0 +1,116 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Tablero 2: Estratégico de Cambio - {{ proyecto_actual.codigo }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0 text-dark">
+            <i class="fa-solid fa-chart-line text-primary me-2"></i>Tablero 2: Estratégico de Gestión del Cambio
+        </h4>
+        <small class="text-muted">Gobernanza del CCB, trazabilidad de 10 etapas, adopción cultural y los 12 KPIs de cambio</small>
+    </div>
+    <div>
+        <a href="{% url 'cambios_list' proyecto_actual.id %}" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-arrows-split-up-and-left me-1"></i> Ir al Módulo de Gestión del Cambio
+        </a>
+    </div>
+</div>
+
+<!-- TARJETAS SUPERIORES DEL EMBUDO DE CAMBIO -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-bold">Solicitudes Ingresadas</span>
+                <i class="fa-solid fa-inbox text-primary fs-4"></i>
+            </div>
+            <h2 class="fw-bold text-dark mt-2 mb-1">{{ total_solicitudes }}</h2>
+            <small class="text-muted">Total histórico de solicitudes (RFC)</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-bold">Aprobadas por CCB</span>
+                <i class="fa-solid fa-circle-check text-success fs-4"></i>
+            </div>
+            <h2 class="fw-bold text-success mt-2 mb-1">{{ total_aprobadas }}</h2>
+            <small class="text-muted">En planificación, ejecución o adopción</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-bold">En Evaluación Técnica</span>
+                <i class="fa-solid fa-hourglass-half text-warning fs-4"></i>
+            </div>
+            <h2 class="fw-bold text-warning mt-2 mb-1">{{ total_en_evaluacion }}</h2>
+            <small class="text-muted">Análisis de impacto y revisión de costos</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 bg-white h-100">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small fw-bold">Descartadas / Rechazadas</span>
+                <i class="fa-solid fa-circle-xmark text-danger fs-4"></i>
+            </div>
+            <h2 class="fw-bold text-danger mt-2 mb-1">{{ total_rechazadas }}</h2>
+            <small class="text-muted">Fuera de alcance o financieramente inviables</small>
+        </div>
+    </div>
+</div>
+
+<!-- LOS 12 KPIS DE GESTIÓN DEL CAMBIO (INDICADOR E & G) -->
+<div class="card card-custom p-3 bg-white mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-dark mb-0">
+            <i class="fa-solid fa-traffic-light text-primary me-2"></i>Motor de KPIs de Cambio (12 Indicadores Paramétricos)
+        </h5>
+        <span class="badge bg-secondary">Métricas de Prosci, CCB & Adopción</span>
+    </div>
+    <div class="row g-3">
+        {% for k in kpis_cambio %}
+        <div class="col-md-3">
+            <div class="border rounded-3 p-3 h-100 position-relative {% if k.semaforo == 'VERDE' %}border-success-subtle bg-success-subtle bg-opacity-10{% elif k.semaforo == 'AMARILLO' %}border-warning-subtle bg-warning-subtle bg-opacity-10{% else %}border-danger-subtle bg-danger-subtle bg-opacity-10{% endif %}">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="badge bg-secondary small">{{ k.codigo }}</span>
+                    {% if k.semaforo == 'VERDE' %}
+                        <span class="badge bg-success"><i class="fa-solid fa-circle"></i> Meta</span>
+                    {% elif k.semaforo == 'AMARILLO' %}
+                        <span class="badge bg-warning text-dark"><i class="fa-solid fa-circle"></i> Alerta</span>
+                    {% else %}
+                        <span class="badge bg-danger"><i class="fa-solid fa-circle"></i> Crítico</span>
+                    {% endif %}
+                </div>
+                <div class="fw-bold text-dark text-truncate" title="{{ k.nombre }}">{{ k.nombre }}</div>
+                <div class="fs-3 fw-bold mt-2 {% if k.semaforo == 'VERDE' %}text-success{% elif k.semaforo == 'AMARILLO' %}text-warning{% else %}text-danger{% endif %}">
+                    {{ k.valor }}{{ k.unidad }}
+                </div>
+                <div class="small text-muted mt-1">
+                    Meta: <strong>{{ k.meta }}{{ k.unidad }}</strong> | <span title="{{ k.formula }}">{{ k.formula }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- FLUJO DE TRAZABILIDAD DE 10 ETAPAS -->
+<div class="card card-custom p-3 bg-white">
+    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-diagram-next text-primary me-2"></i>Estado del Embudo en las 10 Etapas de Cambio</h5>
+    <div class="row g-2 text-center small">
+        {% for num, nombre in etapas_10 %}
+        <div class="col">
+            <div class="border rounded p-2 bg-light h-100">
+                <span class="badge bg-primary rounded-pill mb-1">Etapa {{ num }}</span>
+                <div class="fw-bold text-dark text-truncate" title="{{ nombre }}" style="font-size: 0.75rem;">
+                    {{ nombre|slice:"3:" }}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+

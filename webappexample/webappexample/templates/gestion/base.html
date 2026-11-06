@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SGP - Sistema de Gestión de Proyectos{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome 6 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <!-- Frappe Gantt CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.css">
+    <style>
+        :root {
+            --primary-navy: #1a2a44;
+            --secondary-blue: #0d6efd;
+            --accent-cyan: #0dcaf0;
+            --bg-light: #f8fafc;
+        }
+        body {
+            background-color: var(--bg-light);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #334155;
+        }
+        .navbar-custom {
+            background: linear-gradient(135deg, #111827 0%, #1e293b 100%);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .nav-tabs .nav-link {
+            color: #64748b;
+            font-weight: 500;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            border-bottom: 3px solid transparent;
+        }
+        .nav-tabs .nav-link.active {
+            color: #0d6efd;
+            font-weight: 600;
+            border-bottom: 3px solid #0d6efd;
+            background: transparent;
+        }
+        .nav-tabs .nav-link:hover {
+            color: #1e293b;
+            border-bottom: 3px solid #cbd5e1;
+        }
+        .card-custom {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .role-badge-director {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: 600;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.82rem;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .role-badge-miembro {
+            background-color: #64748b;
+            color: white;
+            font-weight: 600;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.82rem;
+        }
+        .badge-100-success {
+            background-color: #10b981;
+            color: white;
+        }
+        .badge-100-warning {
+            background-color: #f59e0b;
+            color: white;
+        }
+        /* Frappe Gantt custom colors */
+        .gantt .bar-milestone .bar {
+            fill: #8b5cf6 !important;
+        }
+        .gantt .bar-late .bar {
+            fill: #ef4444 !important;
+        }
+        .gantt .bar-normal .bar {
+            fill: #0d6efd !important;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- NAVBAR PRINCIPAL -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom sticky-top py-2">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white me-4" href="{% url 'home' %}">
+                <i class="fa-solid fa-diagram-project text-primary fs-4"></i>
+                <span>SGP <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill fs-7">Okta SSO</span></span>
+            </a>
+
+            <!-- Selector de Proyecto Activo -->
+            {% if tiene_proyectos %}
+            <div class="dropdown me-3">
+                <button class="btn btn-outline-light btn-sm dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown">
+                    <i class="fa-regular fa-folder-open text-warning"></i>
+                    <span class="text-truncate" style="max-width: 250px;">{{ proyecto_actual.codigo }}: {{ proyecto_actual.nombre }}</span>
+                </button>
+                <ul class="dropdown-menu shadow">
+                    <li><h6 class="dropdown-header">Proyectos Registrados</h6></li>
+                    {% for p in todos_proyectos %}
+                    <li>
+                        <a class="dropdown-item {% if p.id == proyecto_actual.id %}active fw-bold{% endif %}" href="{% url 'cambiar_proyecto_activo' p.id %}">
+                            <span class="badge bg-secondary me-1">{{ p.codigo }}</span> {{ p.nombre }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-primary" href="#" data-bs-toggle="modal" data-bs-target="#modalCrearProyecto">
+                            <i class="fa-solid fa-plus me-1"></i> Crear Nuevo Proyecto
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            {% endif %}
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navContent">
+                <ul class="navbar-nav me-auto">
+                    <!-- Espacio central libre para balance -->
+                </ul>
+
+                <!-- Bloque de Autenticación y Rol Visible (Ajuste Mockup #2) -->
+                <div class="d-flex align-items-center gap-3">
+                    <!-- Indicador Visible del Rol de Okta -->
+                    <div class="d-flex align-items-center gap-2 text-white">
+                        <i class="fa-solid fa-shield-halved text-info"></i>
+                        <span>
+                            <span class="d-none d-md-inline small text-light opacity-75">Autenticado:</span>
+                            <strong>{{ profile.nombre }}</strong>
+                        </span>
+                        {% if profile.es_director %}
+                            <span class="role-badge-director shadow-sm" title="Permisos totales de creación, edición y aprobación">
+                                <i class="fa-solid fa-user-tie me-1"></i> Rol: Director de Proyecto
+                            </span>
+                        {% else %}
+                            <span class="role-badge-miembro shadow-sm" title="Permisos restringidos de lectura y consulta">
+                                <i class="fa-solid fa-user me-1"></i> Rol: Miembro de Equipo
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Botón para alternar rol en vivo durante la defensa/evaluación -->
+                    <a href="{% url 'toggle_dev_role' %}" class="btn btn-outline-warning btn-sm" title="Conmutar rol para probar restricciones de acceso">
+                        <i class="fa-solid fa-shuffle me-1"></i> Cambiar Rol
+                    </a>
+
+                    <!-- Botón de Cerrar Sesión -->
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm" title="Cerrar sesión">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- MENÚ DE NAVEGACIÓN POR PESTAÑAS (Cuando hay proyecto seleccionado) -->
+    {% if tiene_proyectos and proyecto_actual %}
+    <div class="bg-white border-bottom shadow-sm">
+        <div class="container-fluid px-4">
+            <ul class="nav nav-tabs border-0 pt-2">
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_proyecto' %}active{% endif %}" href="{% url 'dashboard_proyecto' proyecto_actual.id %}">
+                        <i class="fa-solid fa-gauge-high me-1 text-primary"></i> Tablero 1: Operativo
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'wbs_view' %}active{% endif %}" href="{% url 'wbs_view' proyecto_actual.id %}">
+                        <i class="fa-solid fa-sitemap me-1 text-primary"></i> EDT / WBS (Regla 100%)
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'recursos_view' %}active{% endif %}" href="{% url 'recursos_view' proyecto_actual.id %}">
+                        <i class="fa-solid fa-users-gear me-1 text-primary"></i> Recursos & Costos
+                        {% if alertas_sobreasignacion %}
+                            <span class="badge rounded-pill bg-danger ms-1">{{ alertas_sobreasignacion|length }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'gantt_view' %}active{% endif %}" href="{% url 'gantt_view' proyecto_actual.id %}">
+                        <i class="fa-solid fa-chart-gantt me-1 text-primary"></i> Carta Gantt Dinámica
+                    </a>
+                </li>
+                <!-- Pestaña Nueva del Mockup: Gestión del Cambio -->
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'cambios_list' %}active{% endif %}" href="{% url 'cambios_list' proyecto_actual.id %}">
+                        <i class="fa-solid fa-arrows-split-up-and-left me-1 text-primary"></i> Gestión del Cambio
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_cambio' %}active{% endif %}" href="{% url 'dashboard_cambio' proyecto_actual.id %}">
+                        <i class="fa-solid fa-chart-line me-1 text-primary"></i> Tablero 2: Estratégico (Cambio)
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ALERTAS Y MENSAJES DE DJANGO -->
+    <div class="container-fluid px-4 mt-3">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show shadow-sm" role="alert">
+                    <i class="fa-solid fa-circle-info me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="container-fluid px-4 py-3">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- MODAL PARA CREAR NUEVO PROYECTO -->
+    <div class="modal fade" id="modalCrearProyecto" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form action="{% url 'crear_proyecto' %}" method="POST">
+                    {% csrf_token %}
+                    <div class="modal-header bg-dark text-white">
+                        <h5 class="modal-title"><i class="fa-solid fa-folder-plus me-2 text-primary"></i>Crear Nuevo Proyecto</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Código del Proyecto</label>
+                            <input type="text" name="codigo" class="form-control" placeholder="Ej. PRJ-2026-002" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre del Proyecto</label>
+                            <input type="text" name="nombre" class="form-control" placeholder="Nombre completo" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <textarea name="descripcion" class="form-control" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Fecha de Inicio</label>
+                                <input type="date" name="fecha_inicio" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Fecha Fin Planificada</label>
+                                <input type="date" name="fecha_fin_plan" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Presupuesto Inicial ($)</label>
+                                <input type="number" step="0.01" name="presupuesto_inicial" class="form-control" value="10000.00" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Director de Proyecto</label>
+                                <input type="text" name="director_nombre" class="form-control" value="{{ profile.nombre }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i>Crear Proyecto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/frappe-gantt/0.6.1/frappe-gantt.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

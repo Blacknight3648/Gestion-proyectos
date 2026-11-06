@@ -1,0 +1,72 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Inicio - SGP (Sin Proyectos Activos){% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-lg-8">
+        <div class="card card-custom border-0 shadow-lg p-4 p-md-5 text-center bg-white">
+            <div class="mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3" style="width: 90px; height: 90px;">
+                    <i class="fa-solid fa-folder-tree fs-1"></i>
+                </div>
+                <h2 class="fw-bold text-dark">Bienvenido al Sistema de Gestión de Proyectos</h2>
+                <p class="text-muted fs-6 mt-2">
+                    Arquitectura integral con WBS jerárquico, cálculo de precedencias (FS/SS/FF/SF), gestión de recursos, tarifas, alertas de sobreasignación, motor de KPIs y gestión del cambio en 10 etapas con propagación automática.
+                </p>
+            </div>
+
+            <!-- Estado Vacío Verificado -->
+            <div class="alert alert-info border-info-subtle d-flex align-items-center justify-content-center gap-2 mb-4 py-3">
+                <i class="fa-solid fa-circle-info fs-5 text-primary"></i>
+                <div class="text-start">
+                    <strong>Estado Inicial Limpio:</strong> Actualmente no existe ningún proyecto iniciado en la base de datos.
+                </div>
+            </div>
+
+            <div class="row g-4 my-2">
+                <!-- Opción 1: Crear proyecto manual -->
+                <div class="col-md-6">
+                    <div class="border rounded-3 p-4 h-100 d-flex flex-column justify-content-between hover-shadow">
+                        <div>
+                            <div class="text-primary fs-3 mb-2"><i class="fa-solid fa-file-circle-plus"></i></div>
+                            <h5 class="fw-bold">Crear Proyecto en Blanco</h5>
+                            <p class="small text-muted">Inicia un nuevo proyecto desde cero configurando sus fechas, presupuesto inicial y estructura WBS.</p>
+                        </div>
+                        <button class="btn btn-outline-primary w-100 mt-3" data-bs-toggle="modal" data-bs-target="#modalCrearProyecto">
+                            <i class="fa-solid fa-plus me-1"></i> + Crear Proyecto
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Opción 2: Cargar caso de prueba para la Demo (50% de la evaluación) -->
+                <div class="col-md-6">
+                    <div class="border border-primary-subtle bg-light rounded-3 p-4 h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="text-warning fs-3 mb-2"><i class="fa-solid fa-bolt"></i></div>
+                            <h5 class="fw-bold text-dark">Cargar Caso de Prueba (Demo 50%)</h5>
+                            <p class="small text-muted">
+                                Puebla instantáneamente el dataset exacto de la rúbrica: <strong>4 etapas, 12 actividades, 20 subactividades, 4 dependencias (FS/SS/FF/SF), 5 profesionales, 6 hitos, 20 KPIs y 5 solicitudes de cambio</strong>.
+                            </p>
+                        </div>
+                        <form action="{% url 'cargar_caso_demo' %}" method="POST">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-warning fw-bold text-dark w-100 mt-3 shadow-sm">
+                                <i class="fa-solid fa-upload me-1"></i> ⚡ Cargar Caso de Prueba (Demo)
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-top text-muted small d-flex justify-content-around">
+                <span><i class="fa-solid fa-check text-success me-1"></i>Regla del 100% WBS</span>
+                <span><i class="fa-solid fa-check text-success me-1"></i>Motor de Precedencias</span>
+                <span><i class="fa-solid fa-check text-success me-1"></i>Alertas de Sobreasignación</span>
+                <span><i class="fa-solid fa-check text-success me-1"></i>Flujo de 10 Etapas</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
