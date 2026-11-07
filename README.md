@@ -47,14 +47,29 @@ Instala los paquetes requeridos por el proyecto (`django`, `authlib`, `python-do
 py -m pip install -r requirements.txt
 ```
 
-### 3. Configurar variables de entorno (`.env`)
-El archivo `.env` se encuentra en la carpeta `webappexample/`. Si vas a usar Okta / Auth0 real, ingresa tus credenciales:
+### 3. Configurar variables de entorno (`.env`) y aplicación en Okta / Auth0
+El archivo `.env` se encuentra en la carpeta `webappexample/` y requiere las credenciales OIDC reales de tu tenant Okta / Auth0:
 ```env
 AUTH0_CLIENT_ID=tu_client_id_aqui
 AUTH0_CLIENT_SECRET=tu_client_secret_aqui
-AUTH0_DOMAIN=tu_dominio.auth0.com
+AUTH0_DOMAIN=tu_dominio.us.auth0.com
 ```
-> **Nota:** Si aún no configuras Okta, el sistema cuenta con un **modo local** para iniciar sesión y probar ambos roles (*Director* y *Miembro*) sin necesidad de conexión externa.
+
+En el panel **Application Settings** de Okta / Auth0 configura las siguientes URIs autorizadas:
+* **Allowed Callback URLs**: `http://localhost:3000/callback`
+* **Allowed Logout URLs**: `http://localhost:3000, http://localhost:3000/login/`
+* **Allowed Web Origins**: `http://localhost:3000`
+
+Para inyectar los roles asignados en **User Management > Roles** (`Director` o `Miembro`) dentro del token JWT firmado, agrega un **Post-Login Action** en **Actions > Triggers > Post-Login**:
+```javascript
+exports.onExecutePostLogin = async (event, api) => {
+  const namespace = 'https://sgp.proyectos/roles';
+  if (event.authorization) {
+    api.idToken.setCustomClaim(namespace, event.authorization.roles);
+    api.accessToken.setCustomClaim(namespace, event.authorization.roles);
+  }
+};
+```
 
 ### 4. Aplicar migraciones a la Base de Datos
 Crea las tablas relacionales en la base de datos local SQLite:
@@ -75,12 +90,12 @@ Abre tu navegador en:
 
 ## Cómo utilizar el sistema
 
-### 1. Inicio de Sesión Obligatorio (`/login/`)
-Al ingresar al sistema serás redirigido a la pantalla de autenticación:
-* **Con Okta SSO**: Haz clic en el botón **"Iniciar Sesión con Okta (SSO)"**.
-* **Acceso Local / Evaluación**: Usa el formulario de usuario seleccionando tu rol:
-  * **Director de Proyecto**: Permite crear proyectos, modificar tareas, asignar recursos y aprobar cambios.
-  * **Miembro de Equipo**: Permite consultar tableros y cronogramas en modo solo lectura.
+### 1. Inicio de Sesión Obligatorio vía Okta SSO (`/login/`)
+Al ingresar al sistema serás redirigido obligatoriamente a la pantalla de autenticación OIDC:
+* Haz clic en **"Iniciar Sesión con Okta (SSO)"** para autenticarte con tu correo y contraseña en el portal seguro de Okta / Auth0.
+* El rol se determina **exclusivamente desde el token firmado por Okta** (nunca seleccionable por el usuario):
+  * **Director de Proyecto**: Permite crear proyectos, poblar el caso demo, modificar tareas, asignar recursos y aprobar/propagar cambios.
+  * **Miembro de Equipo (Rol por defecto / Menor Privilegio)**: Permite consultar tableros, WBS, recursos y cronogramas en modo estricto de solo lectura.
 
 ### 2. Estado Inicial Limpio (Sin proyectos)
 El sistema inicia intencionalmente con **0 proyectos registrados**:
@@ -100,8 +115,8 @@ El sistema inicia intencionalmente con **0 proyectos registrados**:
 * **Gestión del Cambio**: Registra solicitudes (RFC), avanza por las 10 etapas y presiona **⚡ Propagar** para ver cómo se añaden automáticamente los días al Gantt y el dinero al presupuesto.
 * **Tableros 1 y 2**: Monitorea los semáforos (Verde/Amarillo/Rojo) de los KPIs de proyecto y de cambio.
 
-### 4. Probar Restricciones de Rol en Vivo
-En la esquina superior derecha del Navbar encontrarás el botón **"Cambiar Rol"**. Con un solo clic puedes alternar entre *Director* y *Miembro* para comprobar que los botones de creación, edición y aprobación se ocultan o bloquean para usuarios sin privilegios directivos.
+### 4. Verificación de Roles (RBAC)
+En la esquina superior derecha del Navbar se muestra permanentemente tu identidad autenticada en Okta junto con el badge inmutable de tu rol (`Rol: Director de Proyecto` o `Rol: Miembro de Equipo`). Para evaluar distintos privilegios, cierra sesión con el botón **Salir** e ingresa en Okta con una cuenta asignada al rol correspondiente.
 
 ---
 
