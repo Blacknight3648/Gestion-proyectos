@@ -10,11 +10,13 @@
         </h4>
         <small class="text-muted">Registro formal de RFC, evaluación técnica, dictamen de Comité CCB y propagación automática al cronograma y costos</small>
     </div>
+    {% if profile.es_director %}
     <div>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNuevaSolicitud">
             <i class="fa-solid fa-plus me-1"></i> + Nueva Solicitud de Cambio (RFC)
         </button>
     </div>
+    {% endif %}
 </div>
 
 <!-- RESUMEN DE PROCESO DE 10 ETAPAS -->

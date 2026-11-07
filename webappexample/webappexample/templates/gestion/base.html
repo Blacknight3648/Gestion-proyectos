@@ -113,12 +113,14 @@
                         </a>
                     </li>
                     {% endfor %}
+                    {% if profile.es_director %}
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <a class="dropdown-item text-primary" href="#" data-bs-toggle="modal" data-bs-target="#modalCrearProyecto">
                             <i class="fa-solid fa-plus me-1"></i> Crear Nuevo Proyecto
                         </a>
                     </li>
+                    {% endif %}
                 </ul>
             </div>
             {% endif %}
@@ -132,34 +134,28 @@
                     <!-- Espacio central libre para balance -->
                 </ul>
 
-                <!-- Bloque de Autenticación y Rol Visible (Ajuste Mockup #2) -->
+                <!-- Bloque de Autenticación y Rol Visible desde Token Okta (Ajuste Mockup #2) -->
                 <div class="d-flex align-items-center gap-3">
-                    <!-- Indicador Visible del Rol de Okta -->
                     <div class="d-flex align-items-center gap-2 text-white">
                         <i class="fa-solid fa-shield-halved text-info"></i>
                         <span>
-                            <span class="d-none d-md-inline small text-light opacity-75">Autenticado:</span>
+                            <span class="d-none d-md-inline small text-light opacity-75">Okta:</span>
                             <strong>{{ profile.nombre }}</strong>
                         </span>
                         {% if profile.es_director %}
-                            <span class="role-badge-director shadow-sm" title="Permisos totales de creación, edición y aprobación">
+                            <span class="role-badge-director shadow-sm" title="Rol verificado en token OIDC de Okta">
                                 <i class="fa-solid fa-user-tie me-1"></i> Rol: Director de Proyecto
                             </span>
                         {% else %}
-                            <span class="role-badge-miembro shadow-sm" title="Permisos restringidos de lectura y consulta">
+                            <span class="role-badge-miembro shadow-sm" title="Rol verificado en token OIDC de Okta (Solo Lectura)">
                                 <i class="fa-solid fa-user me-1"></i> Rol: Miembro de Equipo
                             </span>
                         {% endif %}
                     </div>
 
-                    <!-- Botón para alternar rol en vivo durante la defensa/evaluación -->
-                    <a href="{% url 'toggle_dev_role' %}" class="btn btn-outline-warning btn-sm" title="Conmutar rol para probar restricciones de acceso">
-                        <i class="fa-solid fa-shuffle me-1"></i> Cambiar Rol
-                    </a>
-
-                    <!-- Botón de Cerrar Sesión -->
-                    <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm" title="Cerrar sesión">
-                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    <!-- Botón de Cerrar Sesión SSO -->
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm" title="Cerrar sesión en SGP y Okta">
+                        <i class="fa-solid fa-arrow-right-from-bracket me-1"></i> Salir
                     </a>
                 </div>
             </div>

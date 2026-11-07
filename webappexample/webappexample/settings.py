@@ -129,15 +129,32 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Load environment definition file
-ENV_FILE = find_dotenv()
-if ENV_FILE:
-    load_dotenv(ENV_FILE)
+# Load environment definition file explicitly from BASE_DIR/.env
+ENV_FILE = BASE_DIR / ".env"
+if ENV_FILE.exists():
+    load_dotenv(ENV_FILE, override=True)
+else:
+    _found_env = find_dotenv()
+    if _found_env:
+        load_dotenv(_found_env, override=True)
 
-# Load Auth0 application settings into memory
-AUTH0_DOMAIN = os.environ.get("AUTH0_DOMAIN")
-AUTH0_CLIENT_ID = os.environ.get("AUTH0_CLIENT_ID")
-AUTH0_CLIENT_SECRET = os.environ.get("AUTH0_CLIENT_SECRET")
-DEV_AUTH_BYPASS = os.environ.get("DEV_AUTH_BYPASS", "True").lower() in ("true", "1", "yes")
+# Load Okta / Auth0 OIDC settings into memory (sanitized)
+_raw_domain = (os.environ.get("AUTH0_DOMAIN") or "").strip()
+AUTH0_DOMAIN = _raw_domain.replace("https://", "").replace("http://", "").rstrip("/")
+AUTH0_CLIENT_ID = (os.environ.get("AUTH0_CLIENT_ID") or "").strip()
+AUTH0_CLIENT_SECRET = (os.environ.get("AUTH0_CLIENT_SECRET") or "").strip()
+
+# Lista administrativa opcional en servidor (nunca editable por el usuario)
+OKTA_ADMIN_EMAILS = [
+    email.strip().lower()
+    for email in (os.environ.get("OKTA_ADMIN_EMAILS") or "").split(",")
+    if email.strip()
+]
+
+# Seguridad de sesiones OIDC
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 3600  # 1 hora
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
 
 

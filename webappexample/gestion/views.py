@@ -58,24 +58,10 @@ def cambiar_proyecto_activo(request, proyecto_id):
     return redirect(next_url)
 
 
-def toggle_dev_role(request):
-    """Permite al evaluador conmutar entre Director y Miembro para probar el RBAC."""
-    actual = request.session.get('dev_role', AuthService.ROLE_DIRECTOR)
-    nuevo = AuthService.ROLE_MIEMBRO if actual == AuthService.ROLE_DIRECTOR else AuthService.ROLE_DIRECTOR
-    request.session['dev_role'] = nuevo
-    nombre_rol = 'Director de Proyecto' if nuevo == AuthService.ROLE_DIRECTOR else 'Miembro de Equipo'
-    messages.success(request, f"Rol cambiado para la prueba a: {nombre_rol}")
-    return redirect(request.META.get('HTTP_REFERER', '/'))
-
-
 @require_POST
+@requerir_director
 def cargar_caso_demo(request):
     """Carga el caso de prueba completo exigido para el 50% de la evaluación."""
-    profile = AuthService.get_current_user_profile(request)
-    if not profile['es_director']:
-        messages.error(request, "Solo un Director de Proyecto puede inicializar el caso de prueba.")
-        return redirect('home')
-
     try:
         call_command('seed_demo_data')
         proyecto = Proyecto.objects.filter(codigo='PRJ-2026-001').first()
@@ -349,6 +335,7 @@ def cambios_list_view(request, proyecto_id):
 
 
 @require_POST
+@requerir_director
 def registrar_solicitud_cambio(request, proyecto_id):
     proyecto = get_object_or_404(Proyecto, id=proyecto_id)
     profile = AuthService.get_current_user_profile(request)

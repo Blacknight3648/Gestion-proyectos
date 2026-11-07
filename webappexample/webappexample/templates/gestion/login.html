@@ -19,10 +19,10 @@
             padding: 1.5rem;
         }
         .login-card {
-            background: rgba(255, 255, 255, 0.98);
+            background: rgba(255, 255, 255, 0.99);
             border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-            max-width: 480px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+            max-width: 460px;
             width: 100%;
             padding: 2.5rem;
         }
@@ -30,13 +30,13 @@
             background-color: #007dc1;
             color: #ffffff;
             font-weight: 600;
-            padding: 0.85rem 1.5rem;
+            padding: 0.9rem 1.5rem;
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 12px;
-            font-size: 1rem;
+            font-size: 1.02rem;
             transition: background 0.2s ease, transform 0.1s ease;
             text-decoration: none;
             border: none;
@@ -47,50 +47,31 @@
             color: #ffffff;
             transform: translateY(-1px);
         }
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            color: #94a3b8;
-            font-size: 0.82rem;
-            margin: 1.5rem 0;
-        }
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .divider:not(:empty)::before {
-            margin-right: .5em;
-        }
-        .divider:not(:empty)::after {
-            margin-left: .5em;
-        }
     </style>
 </head>
 <body>
 
 <div class="login-card">
-    <div class="text-center mb-3">
-        <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3" style="width: 70px; height: 70px;">
+    <div class="text-center mb-4">
+        <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3" style="width: 72px; height: 72px;">
             <i class="fa-solid fa-diagram-project fs-2"></i>
         </div>
         <h3 class="fw-bold text-dark mb-1">SGP Proyectos</h3>
-        <p class="text-muted small">Autenticación & Control de Acceso por Roles (Okta RBAC)</p>
+        <p class="text-muted small mb-0">Sistema de Gestión de Proyectos &amp; Control del Cambio</p>
     </div>
 
-    <!-- MENSAJES DE ALERTA -->
+    <!-- MENSAJES DE ALERTA O ESTADO -->
     {% if messages %}
         {% for message in messages %}
             <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show py-2 px-3 small" role="alert">
-                <i class="fa-solid fa-circle-exclamation me-1"></i>{{ message }}
+                <i class="fa-solid fa-circle-info me-1"></i>{{ message }}
                 <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
             </div>
         {% endfor %}
     {% endif %}
 
-    <!-- BOTÓN SSO OFICIAL DE OKTA (Ajuste al Mockup #1) -->
-    <div class="my-3">
+    <!-- BOTÓN EXCLUSIVO DE INICIO DE SESIÓN ÚNICO (SSO) CON OKTA -->
+    <div class="my-4">
         <a href="{% url 'login_sso' %}" class="btn-okta shadow-sm">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
@@ -99,70 +80,33 @@
         </a>
     </div>
 
-    <div class="divider">o ingresa con tus credenciales</div>
-
-    <!-- FORMULARIO DE ACCESO CON USUARIO Y CONTRASEÑA -->
-    <form action="{% url 'login_manual' %}" method="POST">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label class="form-label small fw-bold text-dark">Correo Electrónico / Usuario</label>
-            <div class="input-group input-group-sm">
-                <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
-                <input type="email" name="email" id="inputEmail" class="form-control" placeholder="ejemplo@gestion.cl" value="director@gestion.cl" required>
+    <!-- INFORMACIÓN DE SEGURIDAD Y GOBERNANZA RBAC -->
+    <div class="border rounded-3 p-3 bg-light small text-secondary">
+        <div class="d-flex align-items-start gap-2 mb-2">
+            <i class="fa-solid fa-shield-halved text-primary mt-1"></i>
+            <div>
+                <strong class="text-dark">Autenticación Centralizada (OIDC):</strong>
+                Ingresa tu correo y contraseña directamente en el portal seguro de Okta. La aplicación no almacena ni solicita contraseñas locales.
             </div>
         </div>
-
-        <div class="mb-3">
-            <label class="form-label small fw-bold text-dark">Nombre Completo</label>
-            <div class="input-group input-group-sm">
-                <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
-                <input type="text" name="nombre" id="inputNombre" class="form-control" placeholder="Tu nombre" value="Cristian Osses" required>
+        <div class="d-flex align-items-start gap-2">
+            <i class="fa-solid fa-user-lock text-success mt-1"></i>
+            <div>
+                <strong class="text-dark">Control de Roles Estricto (RBAC):</strong>
+                Tu nivel de acceso (<em>Director de Proyecto</em> o <em>Miembro de Equipo</em>) es asignado por el administrador y verificado criptográficamente en el token de Okta.
             </div>
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label small fw-bold text-dark">Contraseña</label>
-            <div class="input-group input-group-sm">
-                <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                <input type="password" name="password" class="form-control" value="Demo2026!" required>
-            </div>
-        </div>
-
-        <!-- SELECCIÓN DEL ROL (Indicador A: Director vs Miembro) -->
-        <div class="mb-4">
-            <label class="form-label small fw-bold text-dark">Rol Asignado en el Sistema (RBAC)</label>
-            <select name="role" id="selectRole" class="form-select form-select-sm" required>
-                <option value="DIRECTOR" selected>Director de Proyecto (Permisos Totales)</option>
-                <option value="MIEMBRO">Miembro de Equipo / Cliente (Solo Lectura)</option>
-            </select>
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm">
-            <i class="fa-solid fa-right-to-bracket me-1"></i> Iniciar Sesión en el Sistema
-        </button>
-    </form>
-
-    <!-- ACCESOS RÁPIDOS PARA EVALUACIÓN -->
-    <div class="pt-3 mt-3 border-top text-center">
-        <span class="small text-muted d-block mb-2">Completar formulario rápido como:</span>
-        <div class="btn-group btn-group-sm w-100" role="group">
-            <button type="button" class="btn btn-outline-secondary" onclick="setRole('director@gestion.cl', 'Cristian Osses (Director)', 'DIRECTOR')">
-                <i class="fa-solid fa-user-tie text-primary me-1"></i> Director
-            </button>
-            <button type="button" class="btn btn-outline-secondary" onclick="setRole('miembro@gestion.cl', 'Juan Pérez (Miembro)', 'MIEMBRO')">
-                <i class="fa-solid fa-user text-secondary me-1"></i> Miembro
-            </button>
         </div>
     </div>
+
+    {% if auth0_domain %}
+    <div class="text-center mt-3">
+        <span class="badge bg-light text-muted border fw-normal">
+            <i class="fa-solid fa-server me-1 text-success"></i>Proveedor OIDC: {{ auth0_domain }}
+        </span>
+    </div>
+    {% endif %}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    function setRole(email, nombre, role) {
-        document.getElementById('inputEmail').value = email;
-        document.getElementById('inputNombre').value = nombre;
-        document.getElementById('selectRole').value = role;
-    }
-</script>
 </body>
 </html>

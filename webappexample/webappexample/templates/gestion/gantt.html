@@ -42,6 +42,7 @@
             <p class="small text-muted mb-3">
                 Selecciona una tarea origen con dependientes. Al cambiar su duración, el motor en Python ajustará automáticamente las fechas de inicio y fin de toda la cadena de precedencias en cascada.
             </p>
+            {% if profile.es_director %}
             <form action="" method="POST" id="formCascade">
                 {% csrf_token %}
                 <div class="mb-3">
@@ -62,6 +63,11 @@
                     <i class="fa-solid fa-calculator me-1"></i> Recalcular Cascada en Gantt
                 </button>
             </form>
+            {% else %}
+            <div class="alert alert-secondary small mb-0">
+                <i class="fa-solid fa-lock me-1"></i> Vista de solo lectura (Rol: Miembro de Equipo). Solo un Director de Proyecto puede modificar duraciones del cronograma.
+            </div>
+            {% endif %}
         </div>
     </div>
 

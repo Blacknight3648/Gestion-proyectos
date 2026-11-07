@@ -4,7 +4,6 @@ from gestion import views
 urlpatterns = [
     path('', views.home_view, name='home'),
     path('cambiar-proyecto/<int:proyecto_id>/', views.cambiar_proyecto_activo, name='cambiar_proyecto_activo'),
-    path('toggle-role/', views.toggle_dev_role, name='toggle_dev_role'),
     path('cargar-caso-demo/', views.cargar_caso_demo, name='cargar_caso_demo'),
     path('crear-proyecto/', views.crear_proyecto, name='crear_proyecto'),
 
